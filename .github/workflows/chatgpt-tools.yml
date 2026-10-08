@@ -1,0 +1,33 @@
+name: ChatGPT Tooling
+on:
+  pull_request:
+    branches: [ master ]
+jobs:
+  bundle:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download Apktool and JADX
+        run: |
+          mkdir -p out
+          curl -L --fail -o out/apktool.jar https://github.com/iBotPeaches/Apktool/releases/download/v2.12.0/apktool_2.12.0.jar
+          curl -L --fail -o out/jadx.zip https://github.com/skylot/jadx/releases/download/v1.5.6/jadx-1.5.6.zip
+          cd out
+          unzip -q jadx.zip -d jadx
+          rm jadx.zip
+          java -jar apktool.jar v
+          ./jadx/bin/jadx --version
+      - name: Compile Android helper dex
+        run: |
+          PLATFORM=$(find "$ANDROID_HOME/platforms" -maxdepth 1 -type d -name 'android-*' | sort -V | tail -1)
+          BT=$(find "$ANDROID_HOME/build-tools" -maxdepth 1 -type d | sort -V | tail -1)
+          echo "Using $PLATFORM and $BT"
+          mkdir -p modclasses moddex
+          javac -source 8 -target 8 -cp "$PLATFORM/android.jar" -d modclasses $(find modbuild -name '*.java')
+          "$BT/d8" --lib "$PLATFORM/android.jar" --min-api 26 --output moddex modclasses
+          cp moddex/classes.dex out/acmod-classes.dex
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-re-tools
+          path: out/
+          retention-days: 1
