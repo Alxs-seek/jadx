@@ -1,0 +1,23 @@
+name: ChatGPT Tooling
+on:
+  pull_request:
+    branches: [ master ]
+jobs:
+  bundle:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Apktool and JADX
+        run: |
+          mkdir -p out
+          curl -L --fail -o out/apktool.jar https://github.com/iBotPeaches/Apktool/releases/download/v2.12.0/apktool_2.12.0.jar
+          curl -L --fail -o out/jadx.zip https://github.com/skylot/jadx/releases/download/v1.5.6/jadx-1.5.6.zip
+          cd out
+          unzip -q jadx.zip -d jadx
+          rm jadx.zip
+          java -jar apktool.jar --version
+          ./jadx/bin/jadx --version
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-re-tools
+          path: out/
+          retention-days: 1
